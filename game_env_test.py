@@ -5,17 +5,16 @@ from main import GameEnv
 def test_game_env():
     env = GameEnv(render_mode="human")
 
-    # 测试重置游戏
+    # initial game environment
     obs, info = env.reset()
     print(f"Initial observation: {obs}")
     print(f"Initial info: {info}")
 
-    # 游戏循环
     while True:
-        # 渲染游戏窗口
+        # render game
         env.render()
 
-        # 处理事件
+        # processing keyboard event
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -32,7 +31,7 @@ def test_game_env():
                 else:
                     continue
 
-                # 测试执行动作
+                # executing action in game enviroment
                 obs, reward, done, truncated, info = env.step(action)
                 print(f"Observation: {obs}")
                 print(f"Reward: {reward}")
