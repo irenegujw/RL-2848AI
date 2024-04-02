@@ -31,7 +31,7 @@ def test_game_env():
                 else:
                     continue
 
-                # executing action in game enviroment
+                # executing action in game environment
                 obs, reward, done, truncated, info = env.step(action)
                 print(f"Observation: {obs}")
                 print(f"Reward: {reward}")
