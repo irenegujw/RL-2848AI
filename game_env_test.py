@@ -1,5 +1,5 @@
 import pygame
-from main import GameEnv
+from game_env import GameEnv
 
 
 def test_game_env():

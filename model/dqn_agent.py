@@ -1,6 +1,6 @@
-from cnn_network import CNNNetwork
-from replay_buffer import ReplayBuffer
-from hyper_param_config import (
+from model.cnn_network import CNNNetwork
+from model.replay_buffer import ReplayBuffer
+from model.hyper_param_config import (
     epsilon_start,
     epsilon_end,
     learning_rate,
@@ -118,6 +118,6 @@ class DQNAgent:
 
         self.target_q_network.set_weights(updated_weights)
 
-    def _set_decay_epsilon(self, episode, total_episode):
+    def set_decay_epsilon(self, episode, total_episode):
         decay_epsilon = epsilon_start * (1 - episode / total_episode)
         self.epsilon = max(self.end_epsilon, decay_epsilon)
