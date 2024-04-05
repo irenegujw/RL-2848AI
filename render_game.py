@@ -69,7 +69,7 @@ class Renderer:
             for j in range(4):
                 value = board[i][j]
                 if value > 0:
-                    color = self.colors[int(value * 17)]
+                    color = self.colors[int(value * 16)]
                     pygame.draw.rect(
                         self.screen,
                         color,
@@ -80,7 +80,7 @@ class Renderer:
                             self.grid_size - 10,
                         ),
                     )
-                    value_str = str(2 ** (int(value * 17)))
+                    value_str = str(2 ** (int(value * 16)))
                     text = self.font.render(value_str, True, (0, 0, 0))
                     text_rect = text.get_rect(
                         center=(

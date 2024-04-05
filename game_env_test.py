@@ -38,6 +38,7 @@ def test_game_env():
                 print(f"Done: {done}")
                 print(f"Truncated: {truncated}")
                 print(f"Info: {info}")
+                env.render()
 
                 if done:
                     print("Game Over. Resetting the game.")
