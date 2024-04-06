@@ -3,11 +3,9 @@ import tensorflow as tf
 from typing import Union
 
 
-class CNNNetwork:
+class CNNNetwork(tf.keras.Model):
     def __init__(self, grid_size, action_size, learning_rate, *args, **kwargs):
         super(CNNNetwork, self).__init__()
-        self.state_size = grid_size
-        self.action_size = action_size
         # initialize model with 6 layers
         # input layer: (4, 4, 1) represent a (4,4) board and channel 1
         # layer1 CNN: 32 3x3 kernel, ReLU activation, stride 1, padding 1
@@ -16,31 +14,21 @@ class CNNNetwork:
         # layer3 Full Connect: 512 neurons, ReLU activation
         # layer4 Full Connect: 128 neurons, ReLU activation
         # output layer: 4 neurons (action 0,1,2,3), linear activation
-        self.model = tf.keras.models.Sequential(
-            [
-                tf.keras.Input(shape=(grid_size, grid_size, 1)),
-                tf.keras.layers.Conv2D(
-                    32, kernel_size=(3, 3), activation="relu", strides=1, padding="same"
-                ),
-                tf.keras.layers.Conv2D(
-                    64, kernel_size=(3, 3), activation="relu", strides=1, padding="same"
-                ),
-                tf.keras.layers.Flatten(),
-                tf.keras.layers.Dense(512, activation="relu"),
-                tf.keras.layers.Dense(128, activation="relu"),
-                tf.keras.layers.Dense(action_size, activation="linear"),
-            ]
-        )
-        self.loss = tf.keras.losses.mean_squared_error
-        self.optimize = tf.keras.optimizers.legacy.Adam(learning_rate=learning_rate)
-        self.model.compile(
-            loss=self.loss,
-            optimizer=self.optimize,
-            metrics="accuracy",
-        )
+        self.conv_1 = tf.keras.layers.Conv2D(32, (3, 3), activation='relu', strides=1, padding='same', input_shape=(grid_size, grid_size, 1))
+        self.conv_2 = tf.keras.layers.Conv2D(64, (3, 3), activation='relu', strides=1, padding='same')
+        self.flatten = tf.keras.layers.Flatten()
+        self.fc_1 = tf.keras.layers.Dense(512, activation='relu')
+        self.fc_2 = tf.keras.layers.Dense(128, activation='relu')
+        self.fc_3 = tf.keras.layers.Dense(action_size, activation='linear')
+        self._loss = tf.keras.losses.mean_squared_error
+        self._optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=learning_rate)
 
-    def get_weights(self) -> list:
-        return self.model.get_weights()
+        self.compile(optimizer=self._optimizer, loss=self._loss)
 
-    def set_weights(self, weights: list):
-        self.model.set_weights(weights)
+    def call(self, inputs, training=None, mask=None):
+        conv1_output = self.conv_1(inputs)
+        conv2_output = self.conv_2(conv1_output)
+        flat_output = self.flatten(conv2_output)
+        fc1_output = self.fc_1(flat_output)
+        fc2_output = self.fc_2(fc1_output)
+        return self.fc_3(fc2_output)

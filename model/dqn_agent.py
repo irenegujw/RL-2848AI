@@ -1,3 +1,5 @@
+from typing import SupportsFloat
+
 from model.cnn_network import CNNNetwork
 from model.replay_buffer import ReplayBuffer
 from model.hyper_param_config import (
@@ -26,11 +28,16 @@ class DQNAgent:
     ):
         self.grid_size = 4
         self.action_size = 4
+
+        # init Q network and target network
         self.q_network = CNNNetwork(self.grid_size, self.action_size, _learning_rate)
         self.target_q_network = CNNNetwork(
             self.grid_size, self.action_size, _learning_rate
         )
+        self.q_network.build((None, self.grid_size, self.action_size, 1))
+        self.target_q_network.build((None, self.grid_size, self.action_size, 1))
         self.target_q_network.set_weights(self.q_network.get_weights())
+
         self.replay_buffer = ReplayBuffer()
         self.init_epsilon = _epsilon_start
         self.end_epsilon = _epsilon_end
@@ -53,11 +60,11 @@ class DQNAgent:
             )[0]
         else:
             # reshape state to (4,4,1)
-            q_sa = self.q_network.model.predict(state.reshape(1, 4, 4, 1), verbose=0)
+            q_sa = self.q_network.call(state.reshape(1, 4, 4, 1))
             return np.argmax(q_sa[0])
 
-    def store_experience(self, state, action, reward, next_state, done):
-        self.replay_buffer.push(state, action, reward, next_state, done)
+    def store_experience(self, state: np.ndarray, action: int, reward: SupportsFloat, next_state: np.ndarray, terminated: bool):
+        self.replay_buffer.push(np.array(state), action, reward, np.array(next_state), terminated)
 
     def update(self):
         # soft update
@@ -69,40 +76,30 @@ class DQNAgent:
 
         # sample experience
         batch_exp = self.replay_buffer.sample(self.batch_size)
-        batch_state = []
-        batch_action = []
-        batch_reward = []
-        batch_next_state = []
+        batch_state = np.array([exp[0].reshape(4, 4, 1) for exp in batch_exp])
+        batch_action = np.array([exp[1] for exp in batch_exp])
+        batch_reward = np.array([exp[2] for exp in batch_exp])
+        batch_next_state = np.array([exp[3].reshape(4, 4, 1) for exp in batch_exp])
+        batch_terminated = np.array([1 if exp[4] == 0 else 0 for exp in batch_exp])
 
-        for exp in batch_exp:
-            batch_state.append(exp[0].reshape(4, 4, 1))
-            batch_action.append(exp[1])
-            batch_reward.append(exp[2])
-            batch_next_state.append(exp[3].reshape(4, 4, 1))
-        batch_state = tf.convert_to_tensor(batch_state)
-        batch_next_state = tf.convert_to_tensor(batch_next_state)
-        batch_reward = tf.convert_to_tensor(batch_reward)
-
-        with tf.GradientTape() as tape:  # using tape for backwards propagate
+        with tf.GradientTape() as tape:
             # predicting Q(s,a) for each state and action in experience by using Q network
-            q_states_predict = self.q_network.model(batch_state)
-            indices = tf.range(tf.shape(q_states_predict)[0])  # index of each exp in the batch [0,1,2,...,batch_size]
-            q_states_predict = tf.gather_nd(q_states_predict, tf.stack([indices, batch_action], axis=1))
+            q_states_predict = self.q_network.call(batch_state)
+            q_states_action = tf.gather_nd(q_states_predict, tf.stack([tf.range(self.batch_size), batch_action], axis=1))
 
             # predicting max_a(Q(s')) for each next state in experience by using target network
-            target_next_states_predict = self.target_q_network.model(batch_next_state)
+            target_next_states_predict = self.target_q_network.call(batch_next_state)
             max_target_next_s_q = tf.reduce_max(target_next_states_predict, axis=1)  # get max_q of each Q(s', a)
 
             # computing predict Q(s, a) of target network by using bellman expectation equation
-            q_target_next_s = batch_reward + self.gamma * max_target_next_s_q
+            q_target_next_s = batch_reward + self.gamma * max_target_next_s_q * batch_terminated
 
             # computing loss
-            loss = tf.keras.losses.mse(q_target_next_s, q_states_predict)
+            loss = tf.reduce_mean(tf.square(q_states_action - q_target_next_s))
 
-        gradients = tape.gradient(loss, self.q_network.model.trainable_variables)
-        self.q_network.model.optimizer.apply_gradients(
-            zip(gradients, self.q_network.model.trainable_variables)
-        )
+        # train q network
+        gradients = tape.gradient(loss, self.q_network.trainable_variables)
+        self.q_network._optimizer.apply_gradients(zip(gradients, self.q_network.trainable_variables))
 
         return loss
 

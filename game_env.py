@@ -25,7 +25,7 @@ class GameEnv(gym.Env):
     move = None
     render_mode = None
     renderer = None
-    end = None
+    terminated = None
     illegal_move_penalty = None
     display_score = None
 
@@ -62,7 +62,7 @@ class GameEnv(gym.Env):
         self.illegal_move = 0
         self.move = 0
         self.render_mode = render_mode
-        self.end = False
+        self.terminated = False
         self.highest_score = 0
         self.display_score = 0
         self.largest_tail = 0
@@ -74,7 +74,7 @@ class GameEnv(gym.Env):
         # according to the action, move tiles on board
         reward, score, illegal = self._move(
             action
-        )  # in _move() game end when illegal move > max_illegal_move
+        )
         self.move += 1
 
         # add new random tile
@@ -82,7 +82,7 @@ class GameEnv(gym.Env):
             self._add_random_tile()
 
         # check if game end
-        end = self._check_end()
+        terminated, truncated = self._check_end()
 
         # construct info
         info = {
@@ -93,11 +93,11 @@ class GameEnv(gym.Env):
             "illegal_move": self.illegal_move,
         }
 
-        self.end = end
+        self.terminated = terminated | truncated
         self.score += reward
         self.display_score += score
 
-        return self.board, reward, end, False, info
+        return self.board.copy(), reward, terminated, truncated, info
 
     def reset(
         self,
@@ -110,7 +110,7 @@ class GameEnv(gym.Env):
         self.illegal_move = 0
         self.score = 0
         self.display_score = 0
-        self.end = False
+        self.terminated = False
 
         self._add_random_tile()
         self._add_random_tile()
@@ -119,7 +119,7 @@ class GameEnv(gym.Env):
 
     def render(self) -> RenderFrame | list[RenderFrame] | None:
         self.renderer.render(
-            self.board, self.display_score, self.illegal_move, self.move, self.end
+            self.board, self.display_score, self.illegal_move, self.move, self.terminated
         )
         sleep(0.02)
         return None
@@ -146,7 +146,7 @@ class GameEnv(gym.Env):
                 # consider legal move if any shifted or combined happened in the row/column
                 illegal = False
 
-            if not check_mode:  # check mode is used to check if game end
+            if not check_mode:  # check mode is used to check if there is legal action
 
                 if action in [1, 3]:  # reverse item in the line back to origin order
                     combined_line = combined_line[::-1]
@@ -156,7 +156,7 @@ class GameEnv(gym.Env):
                 else:
                     self.board[:, i] = combined_line
 
-        if illegal:
+        if illegal and not check_mode:
             reward = self.illegal_move_penalty
             self.illegal_move += 1
 
@@ -217,14 +217,19 @@ class GameEnv(gym.Env):
         # self.board == 0 turn board in into [[ True,  True,  False,  True],...]
         return np.argwhere(self.board == 0)
 
-    def _check_end(self) -> bool:
+    def _check_end(self) -> (bool, bool):
+        #  truncated indicates that the game ends due to reasons other than the board being filled up.
+        truncated = False
+        # game terminated because the board being filled up
+        game_terminated = True
+
         if self.move >= self.max_move or self.illegal_move > self.max_illegal_move:
-            return True
+            truncated = True
 
         for direction in range(4):
             _, _, illegal = self._move(direction, check_mode=True)
 
             if not illegal:
-                return False
+                game_terminated = False
 
-        return True
+        return game_terminated, truncated

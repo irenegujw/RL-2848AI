@@ -40,7 +40,7 @@ def test_game_env():
                 print(f"Info: {info}")
                 env.render()
 
-                if done:
+                if done or truncated:
                     print("Game Over. Resetting the game.")
                     obs, info = env.reset()
                     print(f"Initial observation after reset: {obs}")

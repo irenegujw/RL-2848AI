@@ -1,5 +1,5 @@
 from model.hyper_param_config import replay_buffer_size
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, SupportsFloat
 import numpy as np
 import random
 
@@ -15,12 +15,12 @@ class ReplayBuffer:
         self,
         state: np.ndarray,
         action: int,
-        reward: float,
+        reward: SupportsFloat,
         next_state: np.ndarray,
-        done: bool,
+        terminated: bool,
     ):
         # save experience into buffer
-        exp = (state, action, reward, next_state, int(done))
+        exp = (state, action, reward, next_state, int(terminated))
         self.buffer[self.position] = exp
         self.position = (self.position + 1) % self.capacity
         if not self.full and self.position == self.capacity - 1:
