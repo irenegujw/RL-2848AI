@@ -30,7 +30,12 @@ class GameEnv(gym.Env):
     display_score = None
 
     def __init__(
-        self, size=4, max_illegal_move=10, max_move=10000, render_mode="human", illegal_move_penalty=0
+        self,
+        size=4,
+        max_illegal_move=10,
+        max_move=10000,
+        render_mode="human",
+        illegal_move_penalty=-0.5,
     ):
         self.size = size
 
@@ -71,10 +76,10 @@ class GameEnv(gym.Env):
     def step(
         self, action: ActType
     ) -> tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]:
+        self.max_illegal_move = int(self.move * 0.1)
+
         # according to the action, move tiles on board
-        reward, score, illegal = self._move(
-            action
-        )
+        reward, score, illegal = self._move(action)
         self.move += 1
 
         # add new random tile
@@ -91,6 +96,7 @@ class GameEnv(gym.Env):
             "display_score": self.display_score,
             "step_reward": reward,
             "illegal_move": self.illegal_move,
+            "is_illegal_move": illegal,
         }
 
         self.terminated = terminated | truncated
@@ -119,7 +125,11 @@ class GameEnv(gym.Env):
 
     def render(self) -> RenderFrame | list[RenderFrame] | None:
         self.renderer.render(
-            self.board, self.display_score, self.illegal_move, self.move, self.terminated
+            self.board,
+            self.display_score,
+            self.illegal_move,
+            self.move,
+            self.terminated,
         )
         sleep(0.02)
         return None
@@ -140,7 +150,7 @@ class GameEnv(gym.Env):
             combined_line, _reward = self._combine(origin_line)
 
             reward += _reward
-            added_score += int(2**(_reward * 16)) if _reward else 0
+            added_score += int(2 ** (_reward * 16)) if _reward else 0
 
             if not np.array_equal(origin_line, combined_line):
                 # consider legal move if any shifted or combined happened in the row/column

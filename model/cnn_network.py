@@ -14,12 +14,21 @@ class CNNNetwork(tf.keras.Model):
         # layer3 Full Connect: 512 neurons, ReLU activation
         # layer4 Full Connect: 128 neurons, ReLU activation
         # output layer: 4 neurons (action 0,1,2,3), linear activation
-        self.conv_1 = tf.keras.layers.Conv2D(32, (3, 3), activation='relu', strides=1, padding='same', input_shape=(grid_size, grid_size, 1))
-        self.conv_2 = tf.keras.layers.Conv2D(64, (3, 3), activation='relu', strides=1, padding='same')
+        self.conv_1 = tf.keras.layers.Conv2D(
+            32,
+            (3, 3),
+            activation="relu",
+            strides=1,
+            padding="same",
+            input_shape=(grid_size, grid_size, 1),
+        )
+        self.conv_2 = tf.keras.layers.Conv2D(
+            64, (3, 3), activation="relu", strides=1, padding="same"
+        )
         self.flatten = tf.keras.layers.Flatten()
-        self.fc_1 = tf.keras.layers.Dense(512, activation='relu')
-        self.fc_2 = tf.keras.layers.Dense(128, activation='relu')
-        self.fc_3 = tf.keras.layers.Dense(action_size, activation='linear')
+        self.fc_1 = tf.keras.layers.Dense(512, activation="relu")
+        self.fc_2 = tf.keras.layers.Dense(128, activation="relu")
+        self.fc_3 = tf.keras.layers.Dense(action_size, activation="linear")
         self._loss = tf.keras.losses.mean_squared_error
         self._optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=learning_rate)
 
