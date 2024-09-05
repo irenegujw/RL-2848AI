@@ -1,4 +1,4 @@
-from model.hyper_param_config import replay_buffer_size
+from hyper_param_config import replay_buffer_size
 from typing import List, Tuple, Any, SupportsFloat
 import numpy as np
 import random
